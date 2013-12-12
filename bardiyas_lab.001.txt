@@ -1,0 +1,48 @@
+
+0: Setup your DHCP to auto-enroll clients in DNS
+
+	Edit your BIND configuration to make the forward and reverse zones for your lab network dynamic zones, allow dynamic updates
+	Create an ACL restricting dynamic updates to only your lab network segment
+	Restart BIND
+	Test adding records using NSUPDATE utility
+
+1: Create a FreeIPA Server
+
+	Create a VM as follows
+		One vNIC interface, on the internal-only network, with the lab-edge device as its default route
+		Use the PXE to install the OS
+	Install FreeIPA and enable it, using the ipa-server-install utility
+		Configure it to be its own CA (using certmonger)
+		Configure it to be its own DNS server
+		Configure it to install its service records into DNS using dynamic updates
+	Add groups and users
+
+2: Deploy FreeIPA across your network
+
+	Migrate all of the DNS records in the lab-edge server to the FreeIPA server
+	Reconfigure DHCP to instead enroll DHCP clients into the FreeIPA server
+	Create a manifest in the puppet master to implement the policy that all machines that get the policy will have the ipa-client package installed, and are enrolled in the FreeIPA domain
+	Modify the manifest in the puppet master that implements the DNS policy to instruct all machines that get the policy to use the FreeIPA server instead of the lab-edge server for DNS resolution
+	Create a device group that includes all RHEL servers, and to which the FreeIPA and DNS policies are applied
+	Add the ipa-client package to your kickstart configuration in the webserver in the lab-edge box
+	Validate
+		Ensure that all of your users can log into all of the servers
+		Ensure your users can log into any server without reauthenticating, by using Kerberos
+
+3: Create a monitoring server
+
+	Create a VM as follows
+		One vNIC interface, on the internal-only network, with the lab-edge device as its default route
+		Use the PXE to install the OS
+	Install Nagios in the newly created server
+
+4: Make sure everything is under monitoring
+
+	Configure Nagios to monitor the following:
+		IPA Server: the LDAP port, the Kerberos port, the DNS port
+		ECommerce Servers: Web port, Can successfully pull a "canary" file via HTTP
+		Puppet Master Server: Puppet communications port
+		Lab-Edge Server: Web port, Proxy port, Can successfully download the Kickstart file via HTTP
+		PXE Server: Can successfully complete a DHCP lease/release, Can successfully pull a "canary" file via TFTP
+
+ 

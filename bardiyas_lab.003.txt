@@ -1,0 +1,8 @@
+
+0: Front shopping carts with Apache + mod_authz_krb for SSO to the shopping app
+
+1: Install the Zimbra mail+PIM server
+
+2: Integrate Zimbra with the LDAP in FreeiPA for accounts, global address list
+
+3: Integrate Zimbra with the Kerberos in FreeIPA for SSO for IMAP, SMTP, WebUI

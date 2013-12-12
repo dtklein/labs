@@ -1,0 +1,90 @@
+
+0: Create your lab-edge device
+	Create a VM as follows
+		Two vNIC interfaces (vNIC0 bridged to your real NIC, vNIC1 internal-only network)
+		Extra HDD, at least 12 GBytes
+	Install CentOS 6u4 or later
+	Setup vNIC 1 as the gateway for the internal-only segment
+	Install OpenSSH server
+		Configure it to listen on all interfaces
+	Create a mountpoint at /opt/YUM
+	put a filesystem on the second HDD and set it up to automatically mount at /opt/YUM at boot-up
+	Copy the full 2 DVD contents into /opt/YUM and set it up as a YUM repo
+	Install SQUID proxy
+		Configure it to only listen on the vNIC1 interface, on port 8080
+	Install BIND
+		Configure it to forward all unknown requests to 8.8.8.8
+		Configure it to listen on the vNIC1 interface and localhost only
+		Create a zone for your lab network (something like lab.example.com)
+		Create a reverse zone for the subnet used by your internal-only network
+	Install Apache HTTPD
+		Configure it to expose /opt/YUM as a website, listening on port 80
+	
+
+1: Create your Puppet Master Server
+	Create a VM as follows
+		One vNIC interface, on the internal-only network, with the lab-edge device as its default route
+	Point your system-wide resolver (hint resolv.conf) at the lab-edge server for DNS resolution
+	Point your Puppet Master server to use the proxy settings system-wide as described at http://www.putorius.net/2012/06/how-to-configure-system-proxy-settings.html
+	Install Puppet as described at http://docs.puppetlabs.com/guides/installation.html
+		Setup as a master server
+		Create a manifest to implement the policy that all servers that get the policy will use the lab-edge server as their proxy server
+		Create a manifest to implement the policy that all servers that get the policy will use the lab-edge server as their DNS server
+		Create a manifest to implement the policy that all servers that get the policy will use the lab-edge server as their YUM repo for "Base" and "Extras"
+		Create a device group that excludes the lab-edge server and includes every other box in the internal-only network segment, and to which the proxy policy is applied
+		Create a second device group that includes all all boxes in the internal-only network segment, and to which the DNS policy is applied
+		Create a another device group that includes all all boxes in the internal-only network segment, and to which the YUM policy is applied
+	Install puppet in the lab-edge device and join it to the Puppet Master
+	
+2: Prepare to create other boxes
+	Create a kickstart configuration that is based off the one created by the manual installation of the Puppet Master server
+		Change the install source to be the YUM repo in the lab-edge server
+		Add proxy configuration in the %pre section
+		Add the packages for installing puppet from the puppetlabs.com repo to your %packages list
+		Add in the %post section the commands to join the Puppet Master
+		Put this in the web-directory in the lab-edge device, so clients on that segment can access it 
+
+3: Create other servers
+	Create a VM as follows
+		One vNIC interface, on the internal-only network, with the lab-edge device as its default route
+		Instruct it use the kickstart on the lab-edge server, as described here: https://access.redhat.com/site/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Installation_Guide/sn-automating-installation.html
+			the command will look something like: ks=http://server.mydomain.com/directory/ks.cfg
+	Make sure the new server is listed in the Puppet Master and that it receives and applies all the policies
+
+4: Prepare to create a bunch more servers
+	Install DHCPD, TFTPD, SysLinux in the newly created server
+	Add the anaconda boot image to the TFTP directory
+	Add the pxelinux.0 image to the TFTP directory like this: http://www.syslinux.org/wiki/index.php/The_Syslinux_Project
+	Setup DHCP and TFTP to act as a PXE boot server, to deliver the pxelinux.0 boot loader, and then to kickstart the new servers from the kickstart config file you used for the previous server, like this: http://www.centos.org/docs/5/html/Installation_Guide-en-US/ch-pxe.html
+		Note, you will have the PXE server on one box, and the YUM repo and kickstart file on another box. This will require understanding the doc above and modifying hte procedure slightly
+	
+5: Create new servers
+	Create two new server VM instances and have them install CentOS from PXE + Kickstart, and join the Puppet Master
+	Ensure they are fully setup and receive the policies from the Puppet Master
+
+6: Get started with policy
+	Create a manifest in the puppet master to implement the policy that all servers that get the policy will have Apache HTTPD installed and will run it at boot-up
+		The policy should also install Quick.cart from http://opensolution.org/, along with its prerequisites
+		The policy should also install the piwik from piwik.org, along with its prerequisites
+	Create a device group that includes the two newly installed servers, and to which the shopping cart + piwik policy is applied
+
+7: More policies
+	Create a root password policy, which sets the new root password
+	Create a another device group that includes all all boxes in the internal-only network segment, and to which the root password policy is applied
+	Apply this policy and make sure all the servers have the new root password
+
+8: Populate your store
+	Add at least two or three products or services to your store
+
+9: Make your store visible
+	Configure Apache to listen on the outside interface (vNIC0) on your lab-edge device
+	Make this do a ProxyPass and ProxyPassReverse to the two shopping cart sites
+
+10: Can you tell where this is going? 
+	Create a manifest in the puppet master to implement the policy that all servers that get the policy will implement the inbound Apache proxy and outbound Squid proxy
+	Create a device group that includes the lab-edge device, and to which the proxy policy is applied
+	Apply the policy
+	Manually disable the proxy services, reapply hte policy, watch them come back
+
+
+
