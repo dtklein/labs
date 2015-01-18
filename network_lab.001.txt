@@ -1,2 +1,0 @@
-This lab is for getting comfortable with routing
-
