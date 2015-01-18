@@ -1,0 +1,21 @@
+
+0: Setup a Windows install server
+
+	.
+
+1: Build Windows client machines
+
+	.
+
+2: Setup your AD Domain Server
+
+	.
+
+3: Join your Windows clients to the AD domain
+
+	.
+
+4: Setup cross-realm trust between your FreeIPA domain and your AD domain
+
+	NOTE: Cross-realm trusts are a future feature of Samba4, and may not be available at the time you do this lab. If they are not, adapt and overcome
+
